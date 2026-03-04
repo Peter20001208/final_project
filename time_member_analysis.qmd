@@ -1,0 +1,380 @@
+---
+title: "Final Project of Divvy Bikes"
+author: "Ning Xie"
+format:
+  pdf:
+    include-in-header:
+      text: |
+        % Enable wrapping for Pandoc code blocks
+        \usepackage{fvextra}
+        \usepackage{float}
+        \usepackage{makecell}
+        \usepackage{booktabs}
+        \DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+editor: source
+execute-dir: project
+execute:
+  echo: true
+---
+
+```{python}
+# setup
+import geopandas as gpd
+from os.path import join
+import matplotlib.pyplot as plt
+import altair as alt
+import pandas as pd
+import numpy as np
+import time
+import warnings
+import seaborn as sns
+warnings.filterwarnings('ignore')
+alt.renderers.enable('png')
+data_path = 'data/external'
+
+# improve graph resolution
+import tempfile
+from IPython.display import SVG, display, Image
+import vl_convert as vlc
+
+def display_altair_png(chart, scale=2):
+    """
+    Render an Altair chart to a PNG and display it inline.
+
+    Parameters
+    ----------
+    chart : altair.Chart
+        Altair chart object to render.
+    scale : int, optional
+        Resolution scaling factor for the PNG (default = 2). Use scale=2 for standard slides. Use scale = 3–4 for dense figures or PDF exports.
+    """
+    png_bytes = vlc.vegalite_to_png(chart.to_dict(), scale=scale)
+
+    # Write to a temporary PNG file and display
+    with tempfile.NamedTemporaryFile(suffix=".png") as tmp:
+        tmp.write(png_bytes)
+        tmp.flush()
+        display(Image(filename=tmp.name))
+```
+
+```{python}
+#| eval: False
+#| echo: True
+# Data process for Divvy Bike
+# Calculate riding time
+divvy_2506 = pd.read_csv('data_final/divvy_bike/202506-divvy-tripdata.csv')
+
+divvy_2506['started_at'] = pd.to_datetime(divvy_2506['started_at'])
+divvy_2506['ended_at'] = pd.to_datetime(divvy_2506['ended_at'])
+
+divvy_2506['duration_min'] = (divvy_2506['ended_at'] - divvy_2506['started_at']).dt.total_seconds() / 60.0
+
+# Calculate riding distance
+start_points = gpd.GeoSeries(
+    gpd.points_from_xy(divvy_2506['start_lng'], divvy_2506['start_lat']),
+    crs="EPSG:4326"
+)
+
+end_points = gpd.GeoSeries(
+    gpd.points_from_xy(divvy_2506['end_lng'], divvy_2506['end_lat']),
+    crs="EPSG:4326"
+)
+
+start_proj = start_points.to_crs(epsg=32616)
+end_proj   = end_points.to_crs(epsg=32616)
+
+divvy_2506['distance_km'] = start_proj.distance(end_proj) / 1000
+
+# Find out time distribution
+
+divvy_2506['start_hour'] = divvy_2506['started_at'].dt.hour
+divvy_2506['end_hour']   = divvy_2506['ended_at'].dt.hour
+
+divvy_2506['day_of_week'] = divvy_2506['started_at'].dt.dayofweek  # 0=Mon
+
+DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+
+divvy_2506['day_name'] = divvy_2506['day_of_week'].map(dict(enumerate(DAY_NAMES)))
+
+divvy_2506['week_part'] = divvy_2506['day_of_week'].apply(lambda x: 'Weekend' if x>=5 else 'Weekday')
+
+divvy_2506.head()
+
+```
+
+```{python}
+
+# Store to derive_data folder as Parquet (smaller & faster)
+#divvy_2506.to_parquet(
+    "data_final/derive_data/divvy_202506_cleaned.parquet",
+    #compression="snappy",
+   # index=False）
+
+print("Saved to derive_data/divvy_202506_cleaned.parquet")
+```
+
+```{python}
+divvy_2506 = pd.read_parquet("data_final/derive_data/divvy_202506_cleaned.parquet")
+
+# --- 1) Build small aggregated DataFrames ---
+bike_counts = (
+    divvy_2506['rideable_type']
+    .value_counts()
+    .reset_index())
+
+bike_counts['label'] = bike_counts['rideable_type'].map({
+    'electric_bike': 'Electric Bike',
+    'classic_bike': 'Classic Bike'
+}).fillna(bike_counts['rideable_type'])
+
+member_counts = (
+    divvy_2506['member_casual']
+    .value_counts()
+    .reset_index())
+
+member_counts['label'] = member_counts['member_casual'].map({
+    'member': 'Member',
+    'casual': 'Casual'
+}).fillna(member_counts['member_casual'])
+
+# ensure consistent order Weekday then Weekend
+week_counts = (
+    divvy_2506['week_part']
+    .value_counts()
+    .reindex(['Weekday','Weekend'])
+    .reset_index()
+)
+week_counts['label'] = week_counts['week_part']
+
+# --- 2) color map (edit hex if you want) ---
+colors = {
+    'Electric Bike': '#FF9800',
+    'Classic Bike': '#2196F3',
+    'Member': '#4CAF50',
+    'Casual': '#E91E63',
+    'Weekday': '#2b8cbe',
+    'Weekend': '#8da0cb'
+}
+
+# helper: create a bar chart with labels (bars + text)
+def bar_with_labels(df_small, cat_col='label', val_col='count', title=''):
+    base = alt.Chart(df_small).encode(
+        x=alt.X(f'{cat_col}:N', sort='-y', title=None,
+        axis=alt.Axis(labelAngle=0)),
+        y=alt.Y(f'{val_col}:Q', title='Number of Trips'),
+        tooltip=[alt.Tooltip(f'{cat_col}:N', title=cat_col), alt.Tooltip(f'{val_col}:Q', title='Count', format=',')]
+    )
+
+    bars = base.mark_bar().encode(
+        color=alt.Color(f'{cat_col}:N',
+        scale=alt.Scale(domain=list(colors.keys()), range=list(colors.values())),
+                        legend=None)
+    ).properties(
+        width=260, height=360, title=title
+    )
+
+    texts = base.mark_text(dy=-10, fontWeight='bold', fontSize=14).encode(
+        text=alt.Text(f'{val_col}:Q', format=',')
+    )
+
+    return (bars + texts)
+
+# --- 3) Build the three charts ---
+chart_bike = bar_with_labels(bike_counts,   cat_col='label', val_col='count', title='Bike Type')
+
+chart_member = bar_with_labels(member_counts, cat_col='label', val_col='count', title='Membership Type')
+
+chart_week = bar_with_labels(week_counts,   cat_col='label', val_col='count', title='Weekday vs Weekend')
+
+# Layout and styling
+final = (chart_bike | chart_member | chart_week).configure_title(
+    fontSize=16, fontWeight='bold'
+).configure_axis(
+    labelFontSize=12, titleFontSize=13
+).properties(
+    # add an overall title by embedding in a text chart if you want,
+    # or show them as-is and rely on individual titles.
+    #width=260
+)
+
+# Display (in notebook/Quarto this renders inline)
+final
+
+png_bytes = vlc.vegalite_to_png(final.to_dict(), scale=3)
+
+with open("time_member_analysis/fig_bar_pattern.png", "wb") as f:
+    f.write(png_bytes)
+```
+
+```{python}
+# Build small aggregated tables (start-hour)
+bike_small = (
+    divvy_2506.dropna(subset=['start_hour', 'week_part', 'rideable_type'])
+      .groupby(['week_part', 'start_hour', 'rideable_type'], as_index=False)
+      .size().rename(columns={'size': 'count'})
+)
+
+member_small = (
+    divvy_2506.dropna(subset=['start_hour', 'week_part', 'member_casual'])
+      .groupby(['week_part', 'start_hour', 'member_casual'], as_index=False)
+      .size().rename(columns={'size': 'count'})
+)
+
+# -------------------------------
+# NEW: normalize by exposure days
+# -------------------------------
+DAY_DIVISOR = {'Weekday': 21, 'Weekend': 9}
+bike_small['avg_per_day']   = bike_small['count'] / bike_small['week_part'].map(DAY_DIVISOR)
+member_small['avg_per_day'] = member_small['count'] / member_small['week_part'].map(DAY_DIVISOR)
+
+# Map pretty labels
+bike_map = {'electric_bike': 'Electric Bike', 'classic_bike': 'Classic Bike'}
+member_map = {'member': 'Member', 'casual': 'Casual'}
+bike_small['rideable_label'] = bike_small['rideable_type'].map(bike_map).fillna(bike_small['rideable_type'])
+member_small['member_label'] = member_small['member_casual'].map(member_map).fillna(member_small['member_casual'])
+
+# Set color scales
+bike_colors = alt.Scale(domain=['Electric Bike','Classic Bike'], range=['#FF9800','#2196F3'])
+member_colors = alt.Scale(domain=['Member','Casual'], range=['#4CAF50','#E91E63'])
+
+
+# ===============================
+# Chart A: Bike Type
+# ===============================
+chart_bike = alt.Chart(bike_small).mark_bar(opacity=0.85).encode(
+    column=alt.Column('week_part:N', title=None, sort=['Weekday', 'Weekend']),
+    x=alt.X('start_hour:O', title='Hour of Day', axis=alt.Axis(labelAngle=0)),
+    y=alt.Y('avg_per_day:Q', title='Avg rides per day'),
+
+    color=alt.Color('rideable_label:N', title='Bike Type',
+                    scale=bike_colors),
+
+    tooltip=[
+        alt.Tooltip('week_part:N', title='Week Part'),
+        alt.Tooltip('start_hour:Q', title='Hour'),
+        alt.Tooltip('rideable_label:N', title='Bike Type'),
+        alt.Tooltip('avg_per_day:Q', title='Avg/day', format=',.1f')
+    ],
+).properties(
+    width=300, height=280, title='Start Time Distribution — Bike Type'
+)
+
+
+# ===============================
+# Chart B: Membership
+# ===============================
+chart_member = alt.Chart(member_small).mark_bar(opacity=0.85).encode(
+    column=alt.Column('week_part:N', title=None, sort=['Weekday', 'Weekend']),
+    x=alt.X('start_hour:O', title='Hour of Day', axis=alt.Axis(labelAngle=0)),
+    y=alt.Y('avg_per_day:Q', title='Avg rides per day'),
+
+    color=alt.Color('member_label:N', title='Membership',
+                    scale=member_colors),
+
+    tooltip=[
+        alt.Tooltip('week_part:N', title='Week Part'),
+        alt.Tooltip('start_hour:Q', title='Hour'),
+        alt.Tooltip('member_label:N', title='Membership'),
+        alt.Tooltip('avg_per_day:Q', title='Avg/day', format=',.1f')
+    ],
+).properties(
+    width=300, height=280, title='Start Time Distribution — Membership'
+)
+
+
+# ===============================
+# Final layout
+# ===============================
+final_hist = alt.vconcat(chart_bike, chart_member).resolve_scale(
+    color='independent'
+).configure_axis(
+    labelFontSize=11, titleFontSize=12
+).configure_legend(
+    titleFontSize=11, labelFontSize=11
+)
+
+display(final_hist)
+
+png_bytes = vlc.vegalite_to_png(final_hist.to_dict(), scale=3)
+
+with open("time_member_analysis/fig_start_time_pattern.png", "wb") as f:
+    f.write(png_bytes)
+
+print("Saved to time_member analysis/fig_start_time_pattern.png")
+
+```
+
+```{python}
+plt.style.use('seaborn-v0_8-whitegrid')
+plt.rcParams['figure.dpi'] = 200
+plt.rcParams['savefig.dpi'] = 200
+plt.rcParams['axes.unicode_minus'] = False
+
+BIKE_COLORS = {'classic_bike': '#2196F3', 'electric_bike': '#FF9800'}
+MEMBER_COLORS = {'member': '#4CAF50', 'casual': '#E91E63'}
+
+df_dur  = divvy_2506[(divvy_2506['duration_min']>0) & (divvy_2506['duration_min']<=120)]
+df_dist = divvy_2506[(divvy_2506['distance_km']>0) & (divvy_2506['distance_km']<=30)]
+
+# ========= ONE FIGURE =========
+fig, axes = plt.subplots(2, 2, figsize=(12, 9))
+
+# -------------------------------
+# 1. Duration by Bike
+ax = axes[0,0]
+for b in ['classic_bike','electric_bike']:
+    subset = df_dur[df_dur['rideable_type']==b]['duration_min']
+    ax.hist(subset, bins=60, alpha=0.6,
+            label=b.replace('_',' ').title(),
+            color=BIKE_COLORS[b])
+ax.set_title("Duration by Bike Type")
+ax.set_xlabel("Minutes")
+ax.set_ylabel("Trips")
+ax.legend()
+
+# -------------------------------
+# 2. Duration by Membership
+ax = axes[0,1]
+for m in ['member','casual']:
+    subset = df_dur[df_dur['member_casual']==m]['duration_min']
+    ax.hist(subset, bins=60, alpha=0.6,
+            label=m.title(),
+            color=MEMBER_COLORS[m])
+ax.set_title("Duration by Membership")
+ax.set_xlabel("Minutes")
+ax.legend()
+
+# -------------------------------
+# 3. Distance by Bike
+ax = axes[1,0]
+for b in ['classic_bike','electric_bike']:
+    subset = df_dist[df_dist['rideable_type']==b]['distance_km']
+    ax.hist(subset, bins=60, alpha=0.6,
+            label=b.replace('_',' ').title(),
+            color=BIKE_COLORS[b])
+ax.set_title("Distance by Bike Type")
+ax.set_xlabel("Kilometers")
+ax.set_ylabel("Trips")
+ax.legend()
+
+# -------------------------------
+# 4. Distance by Membership
+ax = axes[1,1]
+for m in ['member','casual']:
+    subset = df_dist[df_dist['member_casual']==m]['distance_km']
+    ax.hist(subset, bins=60, alpha=0.6,
+            label=m.title(),
+            color=MEMBER_COLORS[m])
+ax.set_title("Distance by Membership")
+ax.set_xlabel("Kilometers")
+ax.legend()
+
+# overall
+fig.suptitle("Duration and Distance", fontsize=16, fontweight='bold')
+plt.tight_layout()
+
+# save + display
+plt.savefig("time_member_analysis/fig_all_distributions.png")
+plt.show()
+plt.close()
+```
