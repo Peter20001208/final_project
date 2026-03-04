@@ -1,6 +1,5 @@
 import json
 from pathlib import Path
-
 import numpy as np
 import pandas as pd
 import streamlit as st
@@ -93,6 +92,11 @@ def geojson_properties_to_df(geo: dict) -> pd.DataFrame:
         df.loc[df["mean_income"] < 0, "mean_income"] = np.nan
     if "n_bikes" in df.columns:
         df.loc[df["n_bikes"] <= 0, "n_bikes"] = np.nan
+
+# Ensure tract IDs are strings (avoid pyarrow conversion errors)
+    for id_col in ["geoid10", "GEOID"]:
+        if id_col in df.columns:
+            df[id_col] = df[id_col].astype(str)
 
     return df
 
