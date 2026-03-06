@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+
+# Mac
+.DS_Store
+
+# IDE
+.vscode/
+
+# environment
+.env
+venv/
+
+# Streamlit cache
+.streamlit/
+
+# raw data
+*csv

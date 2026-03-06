@@ -62,137 +62,13 @@ def display_altair_png(chart, scale=2):
 ```
 
 ```{python}
+
 # =========================
 # Paths
 # =========================
 DATA_PATH = 'data_final/derive_data/divvy_202506_cleaned.parquet'
 BOUNDARY_PATH = 'data_final/city/Boundary_City.geojson'
 RAIL_PATH = 'data_final/CTA_transportation/CTA_Rail.geojson'  # use your existing rail geojson
-
-# =========================
-# 1. Load data
-# =========================
-print("Loading data...")
-df = pd.read_parquet(DATA_PATH)
-
-df['started_at'] = pd.to_datetime(df['started_at'])
-df['hour'] = df['started_at'].dt.hour
-df['day_of_week'] = df['started_at'].dt.dayofweek
-df['is_weekend'] = df['day_of_week'].isin([5,6])
-
-# =========================
-# 2. Time block classification
-# =========================
-def time_block(h):
-    if 6 <= h < 10:
-        return "Morning commute"
-    elif 10 <= h < 16:
-        return "Daytime activity"
-    elif 16 <= h < 23:
-        return "Evening leisure"
-    else:
-        return None
-
-df['time_block'] = df['hour'].apply(time_block)
-df = df.dropna(subset=['time_block'])
-
-# =========================
-# 3. Keep unique origin locations (deduplicate coordinates)
-# =========================
-# Ensure coordinates are numeric
-df['start_lat'] = pd.to_numeric(df['start_lat'], errors='coerce')
-df['start_lng'] = pd.to_numeric(df['start_lng'], errors='coerce')
-
-unique_points = (
-    df[['start_lat','start_lng','time_block','is_weekend']]
-    .dropna()
-    .drop_duplicates()
-)
-
-print("Unique start locations:", len(unique_points))
-
-# =========================
-# 4. Load Chicago boundary + rail lines
-# =========================
-boundary = gpd.read_file(BOUNDARY_PATH)
-
-# Load rail (geojson / shp)
-rail = gpd.read_file(RAIL_PATH)
-
-# Ensure CRS consistency (project rail to boundary CRS)
-try:
-    rail = rail.to_crs(boundary.crs)
-except Exception:
-    # If boundary has no CRS or both are already EPSG:4326, continue
-    rail.crs = boundary.crs
-# =========================
-# 5. Plot maps (save individually)
-# =========================
-print("Plotting maps individually...")
-
-plt.style.use('seaborn-v0_8-whitegrid')
-
-blocks = ["Morning commute","Daytime activity","Evening leisure"]
-
-for block in blocks:
-    for weekend_flag in [False, True]:
-
-        fig, ax = plt.subplots(figsize=(7, 7))
-
-        # Base map
-        boundary.plot(
-            ax=ax,
-            facecolor='#F5F5F5',
-            edgecolor='#333333',
-            linewidth=1,
-            zorder=1
-        )
-
-        # Rail overlay
-        rail.plot(
-            ax=ax,
-            color='#2C3E50',
-            linewidth=0.9,
-            alpha=0.8,
-            zorder=2
-        )
-
-        # Filter points
-        sub = unique_points[
-            (unique_points['time_block'] == block) &
-            (unique_points['is_weekend'] == weekend_flag)
-        ]
-
-        # Plot points
-        ax.scatter(
-            sub['start_lng'],
-            sub['start_lat'],
-            s=2.5,
-            alpha=0.45,
-            color='#E64A19',
-            zorder=3
-        )
-
-        label = "Weekend" if weekend_flag else "Weekday"
-
-        ax.set_title(f"{block} — {label}",
-                     fontsize=13, fontweight='bold')
-
-        ax.set_xlim(-87.95, -87.50)
-        ax.set_ylim(41.64, 42.03)
-        ax.set_aspect('equal')
-        ax.axis('off')
-
-        # filename (clean string)
-        block_clean = block.replace(" ", "_").lower()
-        outname = f"spatial_analysis/{block_clean}_{label.lower()}.png"
-
-        plt.tight_layout()
-        plt.savefig(outname, dpi=300, bbox_inches='tight')
-        plt.close()
-
-        print("Saved:", outname)
-
 ```
 
 ```{python}
@@ -236,9 +112,6 @@ income_col = tract_income[['GEOID','median_income','mean_income']]
 ```
 
 ```{python}
-#| eval: False
-#| echo: True
-
 
 trips_gpd = gpd.GeoDataFrame(
     trips,
@@ -272,8 +145,6 @@ tract_usage['n_trips'] = tract_usage['n_trips'].fillna(0)
 
 
 ```{python}
-#| eval: False
-#| echo: True
 stations_tract = stations_clean.sjoin(
     tract,
     predicate='within'
@@ -300,8 +171,6 @@ tract_usage.head()
 ```
 
 ```{python}
-#| eval: False
-#| echo: True
 income_col.head()
 
 tract_usage1 = tract_usage.merge(
@@ -334,8 +203,6 @@ tract_usage1.describe()
 ```
 
 ```{python}
-#| eval: False
-#| echo: True
 bike_routes = gpd.read_file('data_final/CTA_transportation/Bike_Routes.geojson')
 
 bike_routes = bike_routes.to_crs(tract.crs)
@@ -489,6 +356,45 @@ plt.savefig("spatial_analysis/bike_utilization_map.png",
 plt.show()
 ```
 
+
+```{python}
+fig, ax = plt.subplots(figsize=(8,10))
+
+plot = tract_usage2.plot(
+    column='n_lanes',
+    cmap='viridis',
+    linewidth=0.1,
+    edgecolor='white',
+    legend=True,
+    legend_kwds={
+        "shrink": 0.6,
+        "aspect": 30
+    },
+    missing_kwds={
+        "color": "lightgrey",
+        "label": "No data"
+    },
+    ax=ax
+)
+
+cbar = plot.get_figure().axes[1]
+
+cbar.set_ylabel("")
+
+cbar.set_title("Number of Bike Lanes", fontsize=10, pad=10)
+
+ax.set_title("Chicago Divvy Bike Lanes by Census Tract", fontsize=14)
+ax.axis('off')
+
+plt.savefig("spatial_analysis/n_lanes_map.png",
+            dpi=300,
+            bbox_inches='tight')
+
+plt.show()
+
+```
+
+
 ```{python}
 base = alt.Chart(tract_usage2).encode(
     x=alt.X('median_income:Q',
@@ -591,7 +497,7 @@ chart2
 base = alt.Chart(tract_usage2).encode(
     x=alt.X(
         'n_bikes:Q',
-        title='Total Bikes (log scale)',
+        title='Total Bikes',
     ),
     y=alt.Y(
         'bike_utilization:Q',
@@ -622,62 +528,3 @@ chart3.save("spatial_analysis/bikes_vs_utilization.png")
 chart3
 ```
 
-
-```{python}
-fig, ax = plt.subplots(figsize=(8,10))
-
-plot = tract_usage2.plot(
-    column='n_lanes',
-    cmap='viridis',
-    linewidth=0.1,
-    edgecolor='white',
-    legend=True,
-    legend_kwds={
-        "shrink": 0.6,
-        "aspect": 30
-    },
-    missing_kwds={
-        "color": "lightgrey",
-        "label": "No data"
-    },
-    ax=ax
-)
-
-cbar = plot.get_figure().axes[1]
-
-cbar.set_ylabel("")
-
-cbar.set_title("Number of Bike Lanes", fontsize=10, pad=10)
-
-ax.set_title("Chicago Divvy Bike Lanes by Census Tract", fontsize=14)
-ax.axis('off')
-
-plt.savefig("spatial_analysis/n_lanes_map.png",
-            dpi=300,
-            bbox_inches='tight')
-
-plt.show()
-
-```
-
-```{python}
-chart4 = (
-    alt.Chart(tract_usage2)
-    .mark_bar()
-    .encode(
-        x=alt.X('n_lanes:O', title='Bike Lanes Group'),
-        y=alt.Y('median(bike_utilization):Q',
-                title='Median Bike Utilization'),
-        color=alt.Color('lane_group:O', legend=None)
-    )
-    .properties(
-        title='Bike Lanes vs Median Utilization',
-        width=600,
-        height=400
-    )
-)
-
-chart4.save("spatial_analysis/lanes_vs_utilization.png")
-
-chart4
-```
