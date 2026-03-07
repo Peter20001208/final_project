@@ -43,3 +43,15 @@ final_project.qmd               # Quarto source file
 final_project.pdf               # Final writeup
 requirements.txt                # Python dependencies
 ```
+### Divvy Trip Dataset (June 2025)
+
+## Data Download
+
+Divvy trip dataset (June 2025)
+
+Due to GitHub's 100MB file size limit, the raw Divvy trip dataset is hosted externally.
+
+[Download from Google Drive](https://drive.google.com/file/d/18I41PrL8AqqsEZMeZe_Pg5X6_nRMB7Lr/view?usp=sharing)
+
+
+
