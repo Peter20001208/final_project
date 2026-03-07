@@ -13,8 +13,8 @@ from matplotlib import cm
 st.set_page_config(page_title="Chicago Divvy — Map + Charts", layout="wide")
 
 # Use relative paths so Streamlit Cloud can find files in the repo
-GEOJSON_PATH = Path("data_final/derive_data/tract_usage2.geojson")
-BIKE_ROUTES_PATH = Path("data_final/CTA_transportation/Bike_Routes.geojson")
+GEOJSON_PATH = Path("data/derived-data/tract_usage2.geojson")
+BIKE_ROUTES_PATH = Path("data/raw-data/CTA_transportation/Bike_Routes.geojson")
 
 # Map layer options (label -> property name)
 LAYER_OPTIONS = {
@@ -25,32 +25,13 @@ LAYER_OPTIONS = {
     "Bike lanes (n_lanes)": "n_lanes",
 }
 
-# Scatter chart options (label -> (x, y, y_title, chart_title))
-CHART_OPTIONS = {
-    "Income vs Utilization": (
-        "median_income",
-        "bike_utilization",
-        "Bike Utilization (Trips per Bike)",
-        "Income vs Bike Utilization (Census Tract)",
-    ),
-    "Income vs Bikes": (
-        "median_income",
-        "n_bikes",
-        "Total Bikes (Dock Capacity)",
-        "Income vs Bike Amount (Census Tract)",
-    ),
-    "Income vs Trips": (
-        "median_income",
-        "n_trips",
-        "Total Trips",
-        "Income vs Trips Amount (Census Tract)",
-    ),
-    "Bikes vs Utilization": (
-        "n_bikes",
-        "bike_utilization",
-        "Bike Utilization (Trips per Bike)",
-        "Bikes Amount vs Bike Utilization (Census Tract)",
-    ),
+# Scatter axis options
+SCATTER_OPTIONS = {
+    "Median income": "median_income",
+    "Trips": "n_trips",
+    "Bikes": "n_bikes",
+    "Utilization": "bike_utilization",
+    "Bike lanes": "n_lanes",
 }
 
 NUM_COLS = ["n_trips", "n_bikes", "bike_utilization", "median_income", "mean_income", "n_lanes"]
@@ -153,14 +134,18 @@ def get_tract_id_field(df: pd.DataFrame):
         return "GEOID"
     return None
 
+def build_scatter_with_trend(df: pd.DataFrame, xcol: str, ycol: str):
+    """Build an Altair scatter plot with a regression trend line."""
 
-def build_scatter_with_trend(df: pd.DataFrame, xcol: str, ycol: str, ytitle: str, title: str):
-    """Altair scatter + regression trend line."""
     tooltip_cols = [
         c
         for c in ["geoid10", "GEOID", xcol, ycol, "n_trips", "n_bikes", "n_lanes", "median_income"]
         if c in df.columns
     ]
+
+    x_title = LABEL_MAP.get(xcol, xcol.replace("_", " ").title())
+    y_title = LABEL_MAP.get(ycol, ycol.replace("_", " ").title())
+    chart_title = f"{x_title} vs {y_title} (Census Tract)"
 
     base = (
         alt.Chart(df)
@@ -168,10 +153,14 @@ def build_scatter_with_trend(df: pd.DataFrame, xcol: str, ycol: str, ytitle: str
         .encode(
             x=alt.X(
                 f"{xcol}:Q",
-                title=LABEL_MAP.get(xcol, xcol.replace("_", " ").title()),
+                title=x_title,
                 scale=alt.Scale(zero=False),
             ),
-            y=alt.Y(f"{ycol}:Q", title=ytitle, scale=alt.Scale(zero=False)),
+            y=alt.Y(
+                f"{ycol}:Q",
+                title=y_title,
+                scale=alt.Scale(zero=False),
+            ),
             tooltip=tooltip_cols,
         )
     )
@@ -179,7 +168,7 @@ def build_scatter_with_trend(df: pd.DataFrame, xcol: str, ycol: str, ytitle: str
     points = base.mark_circle(size=45, opacity=0.35)
     trend = base.transform_regression(xcol, ycol).mark_line()
 
-    return (points + trend).properties(title=title, height=420)
+    return (points + trend).properties(title=chart_title, height=420)
 
 
 def render_css_colorbar(lo: float, hi: float, label: str, clipped: bool):
@@ -392,11 +381,22 @@ render_css_colorbar(lo=lo, hi=hi, label=bar_label, clipped=use_clip)
 st.divider()
 st.subheader("Relationship charts (Altair)")
 
-chart_label = st.radio("Select relationship chart", list(CHART_OPTIONS.keys()), horizontal=True)
-xcol, ycol, ytitle, chart_title = CHART_OPTIONS[chart_label]
+s1, s2 = st.columns(2)
 
-chart = build_scatter_with_trend(df, xcol=xcol, ycol=ycol, ytitle=ytitle, title=chart_title)
-st.altair_chart(chart, use_container_width=True)
+with s1:
+    x_label = st.selectbox("Select x-axis", list(SCATTER_OPTIONS.keys()), index=0)
+
+with s2:
+    y_label = st.selectbox("Select y-axis", list(SCATTER_OPTIONS.keys()), index=2)
+
+xcol = SCATTER_OPTIONS[x_label]
+ycol = SCATTER_OPTIONS[y_label]
+
+if xcol == ycol:
+    st.warning("Please select two different variables for the x-axis and y-axis.")
+else:
+    chart = build_scatter_with_trend(df, xcol=xcol, ycol=ycol)
+    st.altair_chart(chart, use_container_width=True)
 
 with st.expander("Data quick check"):
     cols = [c for c in ["geoid10", "GEOID", "n_trips", "n_bikes", "bike_utilization", "median_income", "n_lanes"] if c in df.columns]
