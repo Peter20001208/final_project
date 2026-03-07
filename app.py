@@ -14,7 +14,7 @@ st.set_page_config(page_title="Chicago Divvy — Map + Charts", layout="wide")
 
 # Use relative paths so Streamlit Cloud can find files in the repo
 GEOJSON_PATH = Path("data/derived-data/tract_usage2.geojson")
-BIKE_ROUTES_PATH = Path("data/raw-data/CTA_transportation/Bike_Routes.geojson")
+BIKE_ROUTES_PATH = Path("data/raw-data/Bike_Routes.geojson")
 
 # Map layer options (label -> property name)
 LAYER_OPTIONS = {
