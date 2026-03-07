@@ -1,40 +1,18 @@
----
-title: "Final Project of Divvy Bikes"
-author: "Cecilia Zhong"
-format:
-  pdf:
-    include-in-header:
-      text: |
-        % Enable wrapping for Pandoc code blocks
-        \usepackage{fvextra}
-        \usepackage{float}
-        \usepackage{makecell}
-        \usepackage{booktabs}
-        \DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
-editor: source
-execute-dir: project
-execute:
-  echo: true
----
 
-
-```{python}
 # setup
 import geopandas as gpd
 import matplotlib.pyplot as plt
 import altair as alt
-import pandas as pd
-import numpy as np
 import warnings
-import seaborn as sns
+import tempfile
+from IPython.display import display, Image
+import vl_convert as vlc
 warnings.filterwarnings('ignore')
 alt.renderers.enable('png')
 data_path = 'data/external'
 
 # improve graph resolution
-import tempfile
-from IPython.display import SVG, display, Image
-import vl_convert as vlc
+
 
 def display_altair_png(chart, scale=2):
     """
@@ -54,13 +32,9 @@ def display_altair_png(chart, scale=2):
         tmp.write(png_bytes)
         tmp.flush()
         display(Image(filename=tmp.name))
-```
 
-```{python}
+
 tract_usage2 = gpd.read_file('data/derived-data/tract_usage2.geojson')
-```
-
-```{python}
 
 fig, ax = plt.subplots(figsize=(8,10))
 
@@ -95,9 +69,7 @@ plt.savefig("spatial_analysis/n_bikes_map.png",
             bbox_inches='tight')
 
 plt.show()
-```
 
-```{python}
 
 fig, ax = plt.subplots(figsize=(8,10))
 
@@ -132,10 +104,7 @@ plt.savefig("spatial_analysis/bike_utilization_map.png",
             bbox_inches='tight')
 
 plt.show()
-```
 
-
-```{python}
 base = alt.Chart(tract_usage2).encode(
     x=alt.X('median_income:Q',
             title='Median Income ($)',
@@ -165,9 +134,7 @@ chart = (points + trend).properties(
 chart.save("spatial_analysis/income_vs_utilization.png")
 
 chart
-```
 
-```{python}
 base = alt.Chart(tract_usage2).encode(
     x=alt.X('median_income:Q',
             title='Median Income ($)',
@@ -197,5 +164,4 @@ chart1 = (points + trend).properties(
 chart1.save("spatial_analysis/income_vs_bikes.png")
 
 chart1
-```
 

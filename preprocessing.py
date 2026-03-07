@@ -1,87 +1,17 @@
----
-title: "Data Processes"
-author: "Weichen Cai, Ning Xie, Cecilia Zhong"
-format:
-  pdf:
-    include-in-header:
-      text: |
-        % Enable wrapping for Pandoc code blocks
-        \usepackage{fvextra}
-        \usepackage{float}
-        \usepackage{makecell}
-        \usepackage{booktabs}
-        \DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
-editor: source
-execute-dir: project
-execute:
-  echo: true
----
 
-```{python}
 # setup
 import geopandas as gpd
-from os.path import join
-import matplotlib.pyplot as plt
-import altair as alt
 import pandas as pd
 import numpy as np
-import time
 import warnings
-import seaborn as sns
 warnings.filterwarnings('ignore')
-alt.renderers.enable('png')
-data_path = 'data/external'
 
-# improve graph resolution
-import tempfile
-from IPython.display import SVG, display, Image
-import vl_convert as vlc
-
-def display_altair_png(chart, scale=2):
-    """
-    Render an Altair chart to a PNG and display it inline.
-
-    Parameters
-    ----------
-    chart : altair.Chart
-        Altair chart object to render.
-    scale : int, optional
-        Resolution scaling factor for the PNG (default = 2). Use scale=2 for standard slides. Use scale = 3–4 for dense figures or PDF exports.
-    """
-    png_bytes = vlc.vegalite_to_png(chart.to_dict(), scale=scale)
-
-    # Write to a temporary PNG file and display
-    with tempfile.NamedTemporaryFile(suffix=".png") as tmp:
-        tmp.write(png_bytes)
-        tmp.flush()
-        display(Image(filename=tmp.name))
-```
-
-```{python}
 # Data process for divvy_202506_cleaned.parquet
-# Calculate riding time
-divvy_2506 = pd.read_csv('data/raw-data/divvy_bike/202506-divvy-tripdata.csv')
+divvy_2506 = pd.read_csv('data/raw-data/202506-divvy-tripdata.csv')
 
 divvy_2506['started_at'] = pd.to_datetime(divvy_2506['started_at'])
 divvy_2506['ended_at'] = pd.to_datetime(divvy_2506['ended_at'])
 
-divvy_2506['duration_min'] = (divvy_2506['ended_at'] - divvy_2506['started_at']).dt.total_seconds() / 60.0
-
-# Calculate riding distance
-start_points = gpd.GeoSeries(
-    gpd.points_from_xy(divvy_2506['start_lng'], divvy_2506['start_lat']),
-    crs="EPSG:4326"
-)
-
-end_points = gpd.GeoSeries(
-    gpd.points_from_xy(divvy_2506['end_lng'], divvy_2506['end_lat']),
-    crs="EPSG:4326"
-)
-
-start_proj = start_points.to_crs(epsg=32616)
-end_proj   = end_points.to_crs(epsg=32616)
-
-divvy_2506['distance_km'] = start_proj.distance(end_proj) / 1000
 
 # Find out time distribution
 
@@ -96,11 +26,6 @@ divvy_2506['day_name'] = divvy_2506['day_of_week'].map(dict(enumerate(DAY_NAMES)
 
 divvy_2506['week_part'] = divvy_2506['day_of_week'].apply(lambda x: 'Weekend' if x>=5 else 'Weekday')
 
-
-```
-
-```{python}
-
 # Store to derive_data folder as Parquet (smaller & faster)
 divvy_2506.to_parquet(
     "data/derived-data/divvy_202506_cleaned.parquet",
@@ -108,24 +33,18 @@ divvy_2506.to_parquet(
     index=False)
 
 print("Saved to derived-data/divvy_202506_cleaned.parquet")
-```
 
 
-
-```{python}
 # Data Process for tract_usage2.geojson
 # =========================
 # Paths
 # =========================
 DATA_PATH = 'data/derived-data/divvy_202506_cleaned.parquet'
-BOUNDARY_PATH = 'data/raw-data/city/Boundary_City.geojson'
-RAIL_PATH = 'data/raw-data/CTA_transportation/CTA_Rail.geojson'  # use your existing rail geojson
-```
+BOUNDARY_PATH = 'data/raw-data/Boundary_City.geojson'
 
-```{python}
 trips = pd.read_parquet(DATA_PATH)
 
-stations = gpd.read_file('data/raw-data/divvy_bike/Divvy_Bicycle_Stations_20260224.geojson')
+stations = gpd.read_file('data/raw-data/Divvy_Bicycle_Stations_20260224.geojson')
 
 stations_clean = stations[[
     'station_name',
@@ -140,14 +59,9 @@ stations_clean = stations[[
 
 stations_clean['total_docks'] = stations_clean['total_docks'].astype(int)
 
-```
-
-
-```{python}
-
 tract_income = gpd.read_file("data/raw-data/illinois_tract_income/illinois_tract_income.shp")
 
-tract = gpd.read_file("data/raw-data/city/CensusTractsTIGER2010_20260301.geojson")
+tract = gpd.read_file("data/raw-data/CensusTractsTIGER2010_20260301.geojson")
 
 tract_income = tract_income.rename(columns={
     'ASQPE001': 'median_income',
@@ -158,9 +72,6 @@ tract_income = tract_income.to_crs(epsg=4326)
 
 income_col = tract_income[['GEOID','median_income','mean_income']]
 
-```
-
-```{python}
 
 trips_gpd = gpd.GeoDataFrame(
     trips,
@@ -190,10 +101,6 @@ tract_usage = tract.merge(
 
 tract_usage['n_trips'] = tract_usage['n_trips'].fillna(0)
 
-```
-
-
-```{python}
 stations_tract = stations_clean.sjoin(
     tract,
     predicate='within'
@@ -214,11 +121,6 @@ tract_usage = tract_usage.merge(
 )
 
 tract_usage['n_bikes'] = tract_usage['n_bikes'].fillna(0)
-
-
-```
-
-```{python}
 
 tract_usage1 = tract_usage.merge(
     income_col,
@@ -246,10 +148,7 @@ q99 = tract_usage1['n_bikes'].quantile(0.99)
 
 tract_usage1.loc[tract_usage1['n_bikes'] > q99, 'n_bikes'] = q99
 
-```
-
-```{python}
-bike_routes = gpd.read_file('data/raw-data/CTA_transportation/Bike_Routes.geojson')
+bike_routes = gpd.read_file('data/raw-data/Bike_Routes.geojson')
 
 bike_routes = bike_routes.to_crs(tract.crs)
 
@@ -285,5 +184,4 @@ tract_usage2_out.to_file(
     driver="GeoJSON"
 )
 
-print("Saved to data_final/derive_data/tract_usage2.geojson")
-```
+print("Saved to data/derived-data/tract_usage2.geojson")

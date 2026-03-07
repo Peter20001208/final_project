@@ -1,41 +1,15 @@
----
-title: "Final Project of Divvy Bikes"
-author: "Ning Xie"
-format:
-  pdf:
-    include-in-header:
-      text: |
-        % Enable wrapping for Pandoc code blocks
-        \usepackage{fvextra}
-        \usepackage{float}
-        \usepackage{makecell}
-        \usepackage{booktabs}
-        \DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
-editor: source
-execute-dir: project
-execute:
-  echo: true
----
 
-```{python}
 # setup
-import geopandas as gpd
-from os.path import join
-import matplotlib.pyplot as plt
 import altair as alt
 import pandas as pd
-import numpy as np
-import time
 import warnings
-import seaborn as sns
+import tempfile
+from IPython.display import display, Image
+import vl_convert as vlc
 warnings.filterwarnings('ignore')
 alt.renderers.enable('png')
 data_path = 'data/external'
 
-# improve graph resolution
-import tempfile
-from IPython.display import SVG, display, Image
-import vl_convert as vlc
 
 def display_altair_png(chart, scale=2):
     """
@@ -55,16 +29,12 @@ def display_altair_png(chart, scale=2):
         tmp.write(png_bytes)
         tmp.flush()
         display(Image(filename=tmp.name))
-```
 
-```{python}
 # Draw Maps
 
 divvy_2506 = pd.read_parquet("data/derived-data/divvy_202506_cleaned.parquet")
 
-```
 
-```{python}
 # Build small aggregated tables (start-hour)
 member_small = (
     divvy_2506.dropna(subset=['start_hour', 'week_part', 'member_casual'])
@@ -183,5 +153,5 @@ chart_member = alt.Chart(member_small).mark_bar(
 display_altair_png(chart_member, scale=4)
 
 chart_member.save("time_member_analysis/time_member_analysis.png")
-```
+
 
