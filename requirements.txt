@@ -1,7 +1,7 @@
 streamlit
 pandas
 numpy
-pydeck
+pydeck==0.9.1
 altair
 matplotlib
 pyarrow
