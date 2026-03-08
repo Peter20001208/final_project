@@ -21,7 +21,7 @@ execute:
 
 ## Group information
 
-- Group members: Weichen Cai (GitHub: Peter20001208), Ning Xie (GitHub:2997804785/NingX), Cecilia Zhong (GitHub:zehanzhong)
+- Group members: Weichen Cai (GitHub:Peter20001208), Ning Xie (GitHub:2997804785/NingX), Cecilia Zhong (GitHub:zehanzhong)
 
 - Lecture section day/time: Wednesday 10:30–11:50 AM
 
