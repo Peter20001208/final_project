@@ -19,6 +19,23 @@ execute:
   echo: false
 ---
 
+## Group information
+
+- Group members: Weichen Cai, Ning Xie, Cecilia Zhong
+
+- Lecture section day/time: Wednesday 10:30–11:50 AM
+
+- Github username: Peter20001208
+
+## Research Question
+
+This project examines whether Divvy bike infrastructure and usage are distributed equitably across Chicago neighborhoods. Because Chicago exhibits substantial spatial income disparities, it is important to evaluate whether shared mobility systems reduce or reinforce these inequalities. Specifically, we investigate three questions: how Divvy bike infrastructure is spatially distributed, whether bike availability and utilization vary with neighborhood income, and whether Divvy usage primarily reflects commuting or recreational patterns.
+
+## Approach and the coding involved
+
+To address these questions, we combine several datasets including Divvy trip records (June 2025), Divvy bike station locations, Chicago census tract boundaries, bike route data, and census tract median income from the American Community Survey. The analysis is conducted at the census tract level. Trip start locations are converted into geographic points and spatially joined with census tracts to calculate the number of trips originating from each tract. Bike station data are also spatially joined with census tracts to measure dock capacity. Bike utilization is then calculated as trips per bike. Income data are merged to examine the relationship between infrastructure, usage, and neighborhood socioeconomic conditions.
+
+The project is implemented in Python using pandas and GeoPandas for data processing and spatial joins. Separate scripts generate spatial maps, income relationship plots, and temporal usage patterns. One challenge was integrating multiple spatial datasets with different coordinate systems and formats. Another limitation is that the analysis uses only one month of trip data, which may not capture seasonal variation in bike usage.
 
 ```{python}
 # setup
@@ -317,6 +334,12 @@ plt.tight_layout()
 plt.show()
 ```
 
+The first two maps illustrate the spatial distribution of Divvy bike infrastructure and utilization across Chicago census tracts. Bike dock capacity is heavily concentrated in downtown and North Side neighborhoods, while many tracts in the South and West Sides have substantially fewer bike stations or none at all. A similar spatial pattern appears in bike utilization, where trips per bike are highest in the same central areas. These patterns suggest that both infrastructure supply and usage are geographically clustered rather than evenly distributed. This finding relates directly to the research question by indicating that access to bike-share infrastructure may vary across neighborhoods.
+
+The two scatter plots examine the relationship between neighborhood income and bike infrastructure or usage. The results show a positive association between census tract median income and the number of bikes available, suggesting that higher-income neighborhoods tend to have more dock capacity. A similar pattern appears for utilization, where higher-income tracts generally exhibit more trips per bike. These relationships indicate that both infrastructure supply and bike usage may increase with neighborhood income, which provides evidence relevant to the research question about whether bike-share systems are distributed equitably across Chicago neighborhoods.
+
+The final figure presents the distribution of trip start times for weekday and weekend trips. Weekday usage shows clear peaks during the morning and evening hours, indicating strong commuting patterns. Members dominate these peak periods, suggesting that Divvy bikes are frequently used as part of daily travel rather than purely for recreation. Weekend usage is more evenly distributed throughout the day. These temporal patterns suggest that bike-share infrastructure functions as an important component of urban mobility, meaning that unequal spatial distribution of infrastructure may translate into unequal access to daily transportation opportunities.
+
 
 ```{python}
 base = alt.Chart(tract_usage2).encode(
@@ -381,8 +404,8 @@ chart1 = (points + trend).properties(
     height=400
 )
 
-chart = chart.properties(width=250, height=240)
-chart1 = chart1.properties(width=250, height=240)
+chart = chart.properties(width=250, height=200)
+chart1 = chart1.properties(width=250, height=200)
 
 chart_scatter = chart1|chart
 display_altair_png(chart_scatter, scale=4)
@@ -500,7 +523,7 @@ chart_member = alt.Chart(member_small).mark_bar(
     ]
 ).properties(
     width=500,
-    height=400,
+    height=300,
     title='Start Time Distribution — Membership'
 ).configure_title(
     fontSize=18,
@@ -512,6 +535,9 @@ chart_member = alt.Chart(member_small).mark_bar(
 display_altair_png(chart_member, scale=4)
 ```
 
+Our interactive Streamlit dashboard is developed to allow users to explore the spatial distribution and relationships in the Divvy bike dataset. The dashboard displays a choropleth map of Chicago census tracts where users can switch between variables such as bike infrastructure (dock capacity), bike utilization, trip counts, income, and bike lane availability. Users can also generate scatter plots to examine relationships between variables, such as income and bike availability or utilization. 
+
+This interactive tool helps visualize how bike infrastructure and usage vary across neighborhoods. By allowing users to compare spatial patterns and socioeconomic variables directly, the dashboard provides additional evidence related to the research question of whether Divvy bike infrastructure and usage are distributed equitably across Chicago neighborhoods.
 ```{python}
 #| eval: False
 
