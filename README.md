@@ -43,7 +43,6 @@ final_project.qmd               # Quarto source file
 final_project.pdf               # Final writeup
 requirements.txt                # Python dependencies
 ```
-### Divvy Trip Dataset (June 2025)
 
 ## Data Download
 
