@@ -29,11 +29,7 @@ cd final_project
 conda env create -f environment_local.yml
 conda activate dap
 ```
-3. Download the Divvy trip dataset (June 2025)
-
-[Download from Google Drive](https://drive.google.com/file/d/18I41PrL8AqqsEZMeZe_Pg5X6_nRMB7Lr/view?usp=sharing)
-
-Download the file and place it in: `data/raw-data/`
+3. [Download the Divvy trip dataset (June 2025)](https://drive.google.com/file/d/18I41PrL8AqqsEZMeZe_Pg5X6_nRMB7Lr/view?usp=sharing) and place it in: `data/raw-data/`
 
 4. Render the final writeup
 ```bash
