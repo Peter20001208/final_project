@@ -20,7 +20,7 @@ data/
     Divvy_Bicycle_Stations_20260224.geojson   # Divvy station dataset
     Bike_Routes.geojson         # Chicago bike lane network
     CensusTractsTIGER2010_20260301.geojson        # Census tract boundaries
-    illinois_tract_income/      # Census tract income data
+    illinois_tract_income/      # Illinois census tract median and mean income data
   derived-data/                 # Processed datasets
     divvy_202506_cleaned.parquet  # Cleaned Divvy trip data
     tract_usage2.geojson          # Aggregated tract-level usage data
@@ -52,6 +52,11 @@ Divvy trip dataset (June 2025)
 Due to GitHub's 100MB file size limit, the dataset is hosted on Google Drive.
 
 [Download from Google Drive](https://drive.google.com/file/d/18I41PrL8AqqsEZMeZe_Pg5X6_nRMB7Lr/view?usp=sharing)
+
+Median household income by census tract from the 2023 5-year ACS.  
+The dataset originates from NHGIS and was provided in the course materials for Problem Set 5, which is the version used in this project.
+
+[Illinois tract income (UChicago Box)](https://uchicago.app.box.com/s/hqcohbiu3jbgacsprwkncied2axqkazz/folder/364804110080)
 
 ## Usage
 
