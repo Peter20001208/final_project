@@ -21,11 +21,9 @@ execute:
 
 ## Group information
 
-- Group members: Weichen Cai, Ning Xie, Cecilia Zhong
+- Group members: Weichen Cai (GitHub: Peter20001208), Ning Xie (GitHub:2997804785/NingX), Cecilia Zhong (GitHub:zehanzhong)
 
 - Lecture section day/time: Wednesday 10:30–11:50 AM
-
-- Github username: Peter20001208
 
 ## Research Question
 
@@ -525,6 +523,8 @@ chart_member = alt.Chart(member_small).mark_bar(
 
 display_altair_png(chart_member, scale=4)
 ```
+
+## Streamlit Dashboard
 
 Our interactive Streamlit dashboard is developed to allow users to explore the spatial distribution and relationships in the Divvy bike dataset. The dashboard displays a choropleth map of Chicago census tracts where users can switch between variables such as bike infrastructure (dock capacity), bike utilization, trip counts, income, and bike lane availability. Users can also generate scatter plots to examine relationships between variables, such as income and bike availability or utilization. 
 
