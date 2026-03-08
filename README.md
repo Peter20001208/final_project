@@ -14,7 +14,7 @@ conda activate dap
 ```
 ## Project Structure
 
-```{bash}
+```bash
 data/
   raw-data/                     # Raw data files
     202506-divvy-tripdata.csv   # Divvy bike trip dataset (June 2025)
@@ -50,7 +50,7 @@ requirements.txt                # Python dependencies
 Divvy trip dataset (June 2025)
 
 Due to GitHub's 100MB file size limit, the dataset is hosted on Google Drive. 
-You should download from the link below and 
+You should download from the link below and and place it in: `data/raw-data/`
 
 [Download from Google Drive](https://drive.google.com/file/d/18I41PrL8AqqsEZMeZe_Pg5X6_nRMB7Lr/view?usp=sharing)
 
@@ -118,29 +118,29 @@ The processed dataset is saved as: `data/derived-data/tract_usage2.geojson`
 
 1. Run preprocessing to clean and aggregate Divvy trip data:
 
-```{bash}
+```bash
 python preprocessing.py
 ```
 
 2. Generate spatial analysis figures:
 
-```{bash}
+```bash
 python spatial_analysis.py
 ```
 
 3. Generate time and membership analysis figures:
 
-```{bash}
+```bash
 python time_member_analysis.py
 ```
 4. Launch the interactive Streamlit dashboard:
 
-```{bash}
+```bash
 streamlit run app.py
 ```
 5. Generate the final report:
 
-```{bash}
+```bash
 quarto render final_project.qmd
 ```
 
