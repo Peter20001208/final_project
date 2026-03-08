@@ -5,6 +5,7 @@ This project analyzes the spatial distribution and usage patterns of Chicago Div
 ## Streamlit Dashboard
 
 https://finalproject-uz92nuaxeyo8ci2uznhdir.streamlit.app/
+Streamlit apps need to be “woken up” if they have not been run in the last 24 hours.
 
 ## Setup
 
