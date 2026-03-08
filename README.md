@@ -51,7 +51,7 @@ environment_local.yml           # Python dependencies
 Divvy trip dataset (June 2025)
 
 Due to GitHub's 100MB file size limit, the dataset is hosted on Google Drive. 
-You should download from the link below and and place it in: `data/raw-data/`
+You should download from the link below and place it in: `data/raw-data/`
 
 [Download from Google Drive](https://drive.google.com/file/d/18I41PrL8AqqsEZMeZe_Pg5X6_nRMB7Lr/view?usp=sharing)
 
