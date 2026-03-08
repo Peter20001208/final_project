@@ -49,9 +49,37 @@ requirements.txt                # Python dependencies
 
 Divvy trip dataset (June 2025)
 
-Due to GitHub's 100MB file size limit, the raw Divvy trip dataset is hosted externally.
+Due to GitHub's 100MB file size limit, the dataset is hosted on Google Drive.
 
 [Download from Google Drive](https://drive.google.com/file/d/18I41PrL8AqqsEZMeZe_Pg5X6_nRMB7Lr/view?usp=sharing)
 
+## Usage
 
+1. Run preprocessing to clean and aggregate Divvy trip data:
+
+```{bash}
+python preprocessing.py
+```
+
+2. Generate spatial analysis figures:
+
+```{bash}
+python spatial_analysis.py
+```
+
+3. Generate time and membership analysis figures:
+
+```{bash}
+python time_member_analysis.py
+```
+4. Launch the interactive Streamlit dashboard:
+
+```{bash}
+streamlit run app.py
+```
+5. Generate the final report:
+
+```{bash}
+quarto render final_project.qmd
+```
 
