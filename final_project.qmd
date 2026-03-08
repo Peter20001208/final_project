@@ -278,7 +278,7 @@ plot1 = tract_usage2.plot(
     ax=axes[0]
 )
 
-axes[0].set_title("Bike Amount by Census Tract", fontsize=13)
+axes[0].set_title("Bike Amount by Census Tract", fontsize=16)
 axes[0].axis('off')
 
 # -------------------
@@ -301,7 +301,7 @@ plot2 = tract_usage2.plot(
     ax=axes[1]
 )
 
-axes[1].set_title("Bike Utilization by Census Tract", fontsize=13)
+axes[1].set_title("Bike Utilization by Census Tract", fontsize=16)
 axes[1].axis('off')
 
 # -------------------
@@ -310,8 +310,8 @@ axes[1].axis('off')
 cbar1 = plot1.get_figure().axes[2]
 cbar2 = plot2.get_figure().axes[3]
 
-cbar1.set_title("Dock Capacity", fontsize=10, pad=8)
-cbar2.set_title("Trips per Bike", fontsize=10, pad=8)
+cbar1.set_title("Dock Capacity", fontsize=14, pad=8)
+cbar2.set_title("Trips per Bike", fontsize=14, pad=8)
 
 plt.tight_layout()
 plt.show()
